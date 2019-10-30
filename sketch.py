@@ -15,7 +15,8 @@ import numpy as np
 #E = 2 * A
 #F = 4 * C
 
-A = np.ones(20) / 20
+B = "paavo"
+A = B[-2:-1]
 
 print(A)
 
