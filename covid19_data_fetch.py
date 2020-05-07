@@ -1,6 +1,6 @@
 import requests
 import json
-from fluidmechanics.probability_functions import mean, standard_deviation
+from probability_functions import mean, standard_deviation
 
 
 class HealthCareDistrict(object):
@@ -10,7 +10,7 @@ class HealthCareDistrict(object):
         self.indices = []
         self.infected_total = 0
         self.daily_new = []
-        self.fiveDMA = []
+        self.stddev_2nd_og = []
         self.infected_cumulative = []
         self.first_order_growths = []
         self.second_order_growths = []
@@ -58,29 +58,39 @@ def fetch_data():
     # then in the same order for the next day etc
     i = 0
     j = 0
-    for value in infections.keys():
+    print(len(list(infections)))
+    for value in infections.values():
         daily_new = hcds[i].daily_new
-        g_1st = hcds[i].first_order_growths
-        g_2nd = hcds[i].second_order_growths
+        first_order_growths = hcds[i].first_order_growths
+        second_order_growths = hcds[i].second_order_growths
+        stddev_2nd_og = hcds[i].stddev_2nd_og
 
-        daily_new.append(int(infections[value]))
-        if j >= 1: # Avoiding Index Error
+        daily_new.append(int(value))
+        if j >= 1:  # Avoiding Index Error
+            # Calculating first order growth
             try:
-                g_1st.append(daily_new[j] / daily_new[j-1])
+                first_order_growths.append(daily_new[j] / daily_new[j-1])
             except ZeroDivisionError:
-                g_1st.append(0)
-            if len(g_1st) >= 2: # Avoiding Index Error
+                first_order_growths.append(0)
+
+            # Calculating second order growth
+            if len(first_order_growths) >= 2:  # Avoiding Index Error
                 try:
-                    g_2nd.append(g_1st[j-1] / g_1st[j-2])
+                    second_order_growths.append(first_order_growths[j-1] / first_order_growths[j-2])
                 except ZeroDivisionError:
-                    g_2nd.append(0)
-            if len(g_2nd) >= 5:
+                    second_order_growths.append(0)
+            else:
+                second_order_growths.append(0)
+            # Calculating STDDEV for 5 previous 2nd order growths
+            if len(second_order_growths) >= 5:
                 sum = []
                 for k in range(0, 4):
-                    sum.append(g_2nd[k-4])
-                hcds[i].fiveDMA.append(standard_deviation(sum))
+                    sum.append(second_order_growths[k-4])
+                stddev_2nd_og.append(standard_deviation(sum))
+            else:
+
         i += 1
-        if i > 21: # When all of the hcds for one day are looped over, date will change
+        if i > 21:  # When all of the hcds for one day are looped over, date will change
             date = day_0 + timedelta(days=((int(value)+1) // 22))
             dates.append(date)
             i = 0
